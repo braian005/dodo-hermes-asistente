@@ -5,28 +5,22 @@ from flask_cors import CORS
 from groq import Groq
 from dotenv import load_dotenv
 
-# Cargar configuración
 load_dotenv()
-# Usamos Groq con DeepSeek o Llama, que tienen un soporte regional mucho más abierto y rápido en servidores.
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 app = Flask(__name__, template_folder='templates')
 CORS(app)
 
-MEMORY_FILE = "/workspace/dodo_memory.json"
-
-def get_memory():
-    if os.path.exists(MEMORY_FILE):
-        with open(MEMORY_FILE, 'r') as f: return json.load(f)
-    return []
-
-def save_memory(history):
-    with open(MEMORY_FILE, 'w') as f: json.dump(history[-10:], f)
+# Memoria en memoria (Render borra el disco al reiniciar, así que usamos RAM)
+# Si necesitas persistencia real, usaríamos una base de datos.
+chat_memory = []
 
 DODO_IDENTITY = (
-    "Eres Hermes, el asistente personal de Dodo. Hablas perfectamente chino mandarín (中文) y español. "
-    "Tu personalidad es cálida y servicial. Ayudas a Dodo con información sobre D&D Trade Company. "
-    "Responde siempre en el idioma en el que te hablen."
+    "Eres Hermes, asistente personal de Dodo y experto en D&D Trade Company. "
+    "Tu comportamiento es profesional, técnico y directo. "
+    "1. NO ALUCINES: Si no conoces un dato, admítelo. "
+    "2. RESPUESTAS: Si te hablan en chino, responde en chino. Si en español, responde en español. "
+    "3. CONSISTENCIA: Mantén un tono serio y eficiente."
 )
 
 @app.route('/')
@@ -36,20 +30,17 @@ def index():
 @app.route('/chat', methods=['POST'])
 def chat():
     user_text = request.json.get('message', '')
-    history = get_memory()
+    
+    # Mantener historial en RAM (Render no permite persistencia en disco de archivos modificados)
+    chat_memory.append({"role": "user", "content": user_text})
     
     try:
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": DODO_IDENTITY},
-                {"role": "user", "content": f"Memoria previa: {json.dumps(history)} | Usuario: {user_text}"}
-            ]
+            messages=[{"role": "system", "content": DODO_IDENTITY}] + chat_memory[-10:]
         )
         response_text = completion.choices[0].message.content
-        
-        history.append({"user": user_text, "bot": response_text})
-        save_memory(history)
+        chat_memory.append({"role": "assistant", "content": response_text})
         
         return jsonify({"response": response_text})
     except Exception as e:
