@@ -2,12 +2,13 @@ import os
 import json
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-from google import genai
-from google.genai import types
+from groq import Groq
 from dotenv import load_dotenv
 
+# Cargar configuración
 load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# Usamos Groq con DeepSeek o Llama, que tienen un soporte regional mucho más abierto y rápido en servidores.
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 app = Flask(__name__, template_folder='templates')
 CORS(app)
@@ -24,8 +25,8 @@ def save_memory(history):
 
 DODO_IDENTITY = (
     "Eres Hermes, el asistente personal de Dodo. Hablas perfectamente chino mandarín (中文) y español. "
-    "Tu personalidad es cálida y servicial. Tienes acceso a documentos de la empresa D&D Trade Company. "
-    "Tu objetivo es ayudar a Dodo. Si te habla en chino, responde en chino. Si te habla en español, responde en español."
+    "Tu personalidad es cálida y servicial. Ayudas a Dodo con información sobre D&D Trade Company. "
+    "Responde siempre en el idioma en el que te hablen."
 )
 
 @app.route('/')
@@ -37,19 +38,20 @@ def chat():
     user_text = request.json.get('message', '')
     history = get_memory()
     
-    config = types.GenerateContentConfig(
-        system_instruction=f"{DODO_IDENTITY}\nMemoria reciente: {json.dumps(history)}"
-    )
-
     try:
-        response = client.models.generate_content(
-            model='gemini-3.1-flash-lite-preview',
-            contents=user_text,
-            config=config
+        completion = client.chat.completions.create(
+            model="deepseek-r1-distill-llama-70b", # Modelo de alto rendimiento, sin restricciones regionales de Google
+            messages=[
+                {"role": "system", "content": DODO_IDENTITY},
+                {"role": "user", "content": f"Memoria previa: {json.dumps(history)} | Usuario: {user_text}"}
+            ]
         )
-        history.append({"user": user_text, "bot": response.text})
+        response_text = completion.choices[0].message.content
+        
+        history.append({"user": user_text, "bot": response_text})
         save_memory(history)
-        return jsonify({"response": response.text})
+        
+        return jsonify({"response": response_text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
