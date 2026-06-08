@@ -40,7 +40,7 @@ def chat():
     
     try:
         completion = client.chat.completions.create(
-            model="deepseek-r1-distill-llama-70b", # Modelo de alto rendimiento, sin restricciones regionales de Google
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": DODO_IDENTITY},
                 {"role": "user", "content": f"Memoria previa: {json.dumps(history)} | Usuario: {user_text}"}
