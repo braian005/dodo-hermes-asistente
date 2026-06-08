@@ -12,7 +12,6 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 app = Flask(__name__, template_folder='templates')
 CORS(app)
 
-# MEMORIA Y PERSONALIDAD
 MEMORY_FILE = "/workspace/dodo_memory.json"
 
 def get_memory():
@@ -21,13 +20,17 @@ def get_memory():
     return []
 
 def save_memory(history):
-    with open(MEMORY_FILE, 'w') as f: json.dump(history[-10:], f) # Mantiene las últimas 10
+    with open(MEMORY_FILE, 'w') as f: json.dump(history[-10:], f)
 
 DODO_IDENTITY = (
     "Eres Hermes, el asistente personal de Dodo. Hablas perfectamente chino mandarín (中文) y español. "
     "Tu personalidad es cálida y servicial. Tienes acceso a documentos de la empresa D&D Trade Company. "
     "Tu objetivo es ayudar a Dodo. Si te habla en chino, responde en chino. Si te habla en español, responde en español."
 )
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -44,14 +47,12 @@ def chat():
             contents=user_text,
             config=config
         )
-        
-        # Actualizar memoria
         history.append({"user": user_text, "bot": response.text})
         save_memory(history)
-        
         return jsonify({"response": response.text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
