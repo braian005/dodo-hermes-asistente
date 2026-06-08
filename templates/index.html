@@ -16,13 +16,14 @@
     <script>
         async function send() {
             const input = document.getElementById('msg');
+            const message = input.value;
             const res = await fetch('/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({message: input.value})
+                body: JSON.stringify({message: message})
             });
             const data = await res.json();
-            document.getElementById('chat').innerHTML += `<p><b>你:</b> ${input.value}</p><p><b>Hermes:</b> ${data.response}</p>`;
+            document.getElementById('chat').innerHTML += `<p><b>你:</b> ${message}</p><p><b>Hermes:</b> ${data.response || data.error}</p>`;
             input.value = '';
         }
     </script>
