@@ -1,8 +1,16 @@
 import os
 import json
 import subprocess
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
+from flask import Flask, render_template, request, jsonify, redirect
+# ... (demás imports)
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    file = request.files['file']
+    if file:
+        file.save(os.path.join("/workspace/", file.filename))
+        return jsonify({"status": "ok"})
+    return jsonify({"error": "No file"}), 400
 from groq import Groq
 from dotenv import load_dotenv
 

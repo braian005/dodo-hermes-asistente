@@ -2,17 +2,13 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hermes - Dodo's Assistant</title>
     <style>
-        body { background: #f4f7f6; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
-        #app { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        #chat { height: 400px; overflow-y: auto; border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px; }
-        .msg { margin: 10px 0; padding: 8px 12px; border-radius: 10px; }
-        .user { background: #007bff; color: white; align-self: flex-end; }
-        .bot { background: #e9ecef; color: #333; }
-        input { width: 75%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-        button { width: 20%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f7f6; }
+        #app { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 15px; }
+        #chat { height: 350px; overflow-y: auto; border-bottom: 1px solid #eee; margin-bottom: 10px; }
+        input { width: 60%; padding: 10px; }
+        .upload-btn { background: #6c757d; color: white; padding: 10px; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -21,22 +17,28 @@
         <div id="chat"></div>
         <input type="text" id="msg" placeholder="请输入指令...">
         <button onclick="send()">发送</button>
+        <input type="file" id="fileInput" style="display:none" onchange="uploadFile()">
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">上传文件</button>
     </div>
     <script>
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            await fetch('/upload', { method: 'POST', body: formData });
+            alert('文件上传成功: ' + file.name);
+        }
         async function send() {
             const input = document.getElementById('msg');
-            const chat = document.getElementById('chat');
             const msg = input.value;
-            if(!msg) return;
-            chat.innerHTML += `<p class="msg user"><b>你:</b> ${msg}</p>`;
             const res = await fetch('/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({message: msg})
             });
             const data = await res.json();
-            chat.innerHTML += `<p class="msg bot"><b>Hermes:</b> ${data.response || data.error}</p>`;
-            chat.scrollTop = chat.scrollHeight;
+            document.getElementById('chat').innerHTML += `<p><b>Hermes:</b> ${data.response}</p>`;
             input.value = '';
         }
     </script>
